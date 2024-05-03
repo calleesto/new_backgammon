@@ -72,47 +72,47 @@ void printMenu(int p1DeadPawns, int p2DeadPawns, int p1Points, int p2Points) {
 
 void printFieldHighlights(int x, bool highlight[24]) {
     if (x == 1) {
-        printf("    ");
-        for (int i = 13; i <= 18; i++) {
-            if (highlight[i] == 1) {
-                printf("_ ");
+        printf("  ");
+        for (int i = 0; i <= 5; i++) {
+            if (highlight[i] == true) {
+                printf("  #");
             }
             else {
-                printf("  ");
+                printf("   ");
             }
         }
-        printf("      ");
-        for (int i = 19; i <= 24; i++) {
-            if (highlight[i] == 1) {
-                printf("_ ");
+        printf("     ");
+        for (int i = 6; i <= 11; i++) {
+            if (highlight[i] == true) {
+                printf("  #");
             }
             else {
-                printf("  ");
+                printf("   ");
             }
         }
         printf(" \n");
     }
 
     else if (x == 2) {
-        printf("\n    ");
-        for (int i = 12; i <= 7; i--) {
-            if (highlight[i] == 1) {
-                printf("_ ");
+        printf("\n  ");
+        for (int i = 12; i <= 17; i++) {
+            if (highlight[i] == true) {
+                printf("  #");
             }
             else {
-                printf("  ");
+                printf("   ");
             }
         }
-        printf("      ");
-        for (int i = 6; i <= 1; i--) {
-            if (highlight[i] == 1) {
-                printf("_ ");
+        printf("     ");
+        for (int i = 18; i <= 23; i++) {
+            if (highlight[i] == true) {
+                printf("  #");
             }
             else {
-                printf("  ");
+                printf("   ");
             }
         }
-        printf(" ");
+        printf(" \n");
     }
 }
 
@@ -165,7 +165,7 @@ void printBoard(char topBoard[][5], char bottomBoard[][5], int p1DeadPawns, int 
         printf("\n");
     }
     printf("  +-----------------------------------------+\n");
-    printf("   12 11 10  9  8  7       6  5  4  3  2  1  \n\n");
+    printf("   12 11 10  9  8  7       6  5  4  3  2  1  ");
     printFieldHighlights(2, highlight);
 }
 
@@ -254,39 +254,23 @@ void clearScreen() {
 // }
 
 void highlightFields(char x, char topBoard[][5], char bottomBoard[][5], bool highlight[24]) {
-    int field;
     for (int i = 0; i <= 11; i++) {
         if (topBoard[i][0] == x) {
-            field = i;
-            fieldDecryption(&field);
-            highlight[field] = true;
+            highlight[i] = true;
         }
-    }
-
-    for (int i = 0; i <= 11; i++) {
         if (bottomBoard[i][4] == x) {
-            field = i;
-            fieldDecryption(&field);
-            highlight[field] = true;
+            highlight[i+12] = true;
         }
     }
 }
 
 void undoHighlight(char x, char topBoard[][5], char bottomBoard[][5], bool highlight[24]) {
-    int field;
     for (int i = 0; i <= 11; i++) {
         if (topBoard[i][0] == x) {
-            field = i;
-            fieldDecryption(&field);
-            highlight[field] = false;
+            highlight[i] = false;
         }
-    }
-
-    for (int i = 0; i <= 11; i++) {
         if (bottomBoard[i][4] == x) {
-            field = i;
-            fieldDecryption(&field);
-            highlight[field] = false;
+            highlight[i+12] = false;
         }
     }
 }
@@ -294,6 +278,35 @@ void undoHighlight(char x, char topBoard[][5], char bottomBoard[][5], bool highl
 /*void forceHit() {
 
 }*/
+
+void saveGameState(const char* filename, char topBoard[][5], char bottomBoard[][5]) {
+    FILE* file = fopen(filename, "wb"); // Open file for writing in binary mode
+
+    if (file != NULL) {
+        // Write the game state structure to the file
+        fwrite(topBoard, sizeof(char), 12 * 5, file);
+        fwrite(bottomBoard, sizeof(char), 12 * 5, file);
+        fclose(file);
+    }
+    else {
+        printf("Failed to open file for writing.\n");
+    }
+}
+
+// Function to load the game state from a file
+void loadGameState(const char* filename, char topBoard[][5], char bottomBoard[][5]) {
+    FILE* file = fopen(filename, "rb"); // Open file for reading in binary mode
+
+    if (file != NULL) {
+        // Read the game state structure from the file
+        fread(topBoard, sizeof(char), 12 * 5, file);
+        fread(bottomBoard, sizeof(char), 12* 5, file);
+        fclose(file);
+    }
+    else {
+        printf("Failed to open file for reading.\n");
+    }
+}
 
 
 //movement for player 1 'O'
@@ -795,6 +808,17 @@ void playerMovement(int field, int pawn, char topBoard[][5], char bottomBoard[][
 
 }
 
+bool checkForEscape() {
+    if (_kbhit()) { // Check if a key is pressed
+        char key = _getch(); // Read the key pressed
+        if (key == 27) { // 27 is the ASCII code for Escape key
+            exit(0); // Exit the program if Escape key is pressed
+        }
+    }
+    return false; // Return false otherwise
+}
+
+
 int main() {
     int whoStarts; //  1 - player 1 starts, 2 - player 2 starts
     char topBoard[12][5]; // board[24][5]
@@ -812,13 +836,31 @@ int main() {
     setPawnsDefault(topBoard, bottomBoard);
     openingRoll(&whoStarts);
     printBoard(topBoard, bottomBoard, p1DeadPawns, p2DeadPawns, p1Points, p2Points, highlight);
-    playerMovement(field, pawn, topBoard, bottomBoard, whoStarts, p1DeadPawns, p2DeadPawns, p1Points, p2Points, highlight);
+
+    while (true) {
+        // Your existing game logic...
+
+        // Check for Escape key press
+        if (checkForEscape()) {
+            // Close the game
+            break;
+        }
+
+        // Additional game logic here if needed
+        // For example, player movement or other actions
+        playerMovement(field, pawn, topBoard, bottomBoard, whoStarts, p1DeadPawns, p2DeadPawns, p1Points, p2Points, highlight);
+    }
+
+    // Any cleanup code here
+
+    return 0;
+}
+
+//loadGameState("game_state.bin", topBoard, bottomBoard);
+//saveGameState("game_state.bin", topBoard, bottomBoard);
 
     //  for (int j = 0; j < 5; j++) {
     //     for (int i = 0; i < 12; i++) {
     //         printf("%d %d %c\n", i, j, bottomBoard[i][j]);
     //     }
     //  }
-
-    return 0;
-}
