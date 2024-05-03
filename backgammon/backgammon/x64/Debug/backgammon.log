@@ -1,0 +1,3 @@
+﻿  main.cpp
+C:\Users\Stan Swirydczuk\Desktop\newBackgammon\backgammon\backgammon\main.cpp(810,15): warning C4244: 'argument': conversion from 'time_t' to 'unsigned int', possible loss of data
+  backgammon.vcxproj -> C:\Users\Stan Swirydczuk\Desktop\newBackgammon\backgammon\x64\Debug\backgammon.exe
