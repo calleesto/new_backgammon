@@ -3,6 +3,10 @@
   "WorkspaceRootPath": "C:\\Users\\Stan Swirydczuk\\Desktop\\newBackgammon\\backgammon\\",
   "Documents": [
     {
+      "AbsoluteMoniker": "D:0:0:{C1DE6E80-FB93-452B-A8B9-32FBFF0CB101}|backgammon\\backgammon.vcxproj|C:\\Users\\Stan Swirydczuk\\Desktop\\newBackgammon\\backgammon\\backgammon\\game_state.bin||{25834150-CD7E-11D0-92DF-00A0C9138C45}",
+      "RelativeMoniker": "D:0:0:{C1DE6E80-FB93-452B-A8B9-32FBFF0CB101}|backgammon\\backgammon.vcxproj|solutionrelative:backgammon\\game_state.bin||{25834150-CD7E-11D0-92DF-00A0C9138C45}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{C1DE6E80-FB93-452B-A8B9-32FBFF0CB101}|backgammon\\backgammon.vcxproj|C:\\Users\\Stan Swirydczuk\\Desktop\\newBackgammon\\backgammon\\backgammon\\main.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
       "RelativeMoniker": "D:0:0:{C1DE6E80-FB93-452B-A8B9-32FBFF0CB101}|backgammon\\backgammon.vcxproj|solutionrelative:backgammon\\main.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     }
@@ -19,12 +23,23 @@
             {
               "$type": "Document",
               "DocumentIndex": 0,
+              "Title": "game_state.bin",
+              "DocumentMoniker": "C:\\Users\\Stan Swirydczuk\\Desktop\\newBackgammon\\backgammon\\backgammon\\game_state.bin",
+              "RelativeDocumentMoniker": "backgammon\\game_state.bin",
+              "ToolTip": "C:\\Users\\Stan Swirydczuk\\Desktop\\newBackgammon\\backgammon\\backgammon\\game_state.bin",
+              "RelativeToolTip": "backgammon\\game_state.bin",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2024-05-14T11:02:03.264Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
               "Title": "main.cpp",
               "DocumentMoniker": "C:\\Users\\Stan Swirydczuk\\Desktop\\newBackgammon\\backgammon\\backgammon\\main.cpp",
               "RelativeDocumentMoniker": "backgammon\\main.cpp",
               "ToolTip": "C:\\Users\\Stan Swirydczuk\\Desktop\\newBackgammon\\backgammon\\backgammon\\main.cpp",
               "RelativeToolTip": "backgammon\\main.cpp",
-              "ViewState": "AQIAAB0DAAAAAAAAAADwvzIDAAABAAAA",
+              "ViewState": "AQIAAGQAAAAAAAAAAADgv9YAAAAAAAAA",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
               "WhenOpened": "2024-05-01T18:43:03.173Z",
               "EditorCaption": ""

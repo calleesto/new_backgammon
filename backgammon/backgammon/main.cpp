@@ -6,16 +6,47 @@
 #include <stdlib.h>
 #include <windows.h>
 #include <string.h>
+#include <string>
+
+#define PLAYER1_SYM '1'
+#define PLAYER2_SYM '2'
+#define BLANK       '-'
 
 using namespace std;
 
+void openingRoll(int* whoStarts);
+void setPawnsDefault(struct GameState* gameState);
+void printMenu(struct GameState* gameState);
+void printFieldHighlights(int x, bool highlight[24]);
+void printBoard(struct GameState* gameState, bool highlight[24]);
+void fieldDecryption(int* field);
+int getNumericInput(struct GameState* gameState, int field, int pawn, bool highlight[24], int whoStarts);
+void clearScreen();
+void highlightFields(char x, struct GameState* gameState, bool highlight[24]);
+void undoHighlight(char x, struct GameState* gameState, bool highlight[24]);
+void saveGameState(const char* filename, struct GameState* gameState);
+void loadGameState(const char* filename, struct GameState* gameState);
+int isFileEmpty(const char* filename, struct GameState* gameState);
+void ifDeadPawns(int field, int pawn, struct GameState* gameState, bool highlight[24], int whoStarts);
+int rollingDie(struct GameState* gameState);
+void endingMove(int field, int pawn, struct GameState* gameState, bool highlight[24], int nextPlayer, int whoStarts);
+int pawnInput(int player, string board, struct GameState* gameState, int pawn, int field);
+int enterFieldNumber(int field, struct GameState* gameState, bool highlight[24], int pawn, int whoStarts);
+void endGame(struct GameState* gameState);
+void playerMovement(int field, int pawn, struct GameState* gameState, bool highlight[24], int whoStarts);
+void printMenuChoice();
+char getInput();
+void entryMenuChoice(int field, int pawn, struct GameState* gameState, bool highlight[24], int whoStarts);
 
-//kazdy gracz ma po 16 pionkow 
-//pionki numeruje w aplikacji od home boarda od dolu do gory
-
-
-//niektorzy u kolaka robili wszystko w jednej strukturze
-
+struct GameState {
+    char topBoard[12][5];
+    char bottomBoard[12][5];
+    int whoseTurn;
+    int p1DeadPawns;
+    int p2DeadPawns;
+    int p1BornPawns;
+    int p2BornPawns;
+};
 
 void openingRoll(int* whoStarts) {
     int rollOne = rand() % 6 + 1;
@@ -31,43 +62,40 @@ void openingRoll(int* whoStarts) {
     }
 }
 
-void setPawnsDefault(char topBoard[][5], char bottomBoard[][5]) {
+void setPawnsDefault(struct GameState* gameState) {
+    gameState->p1DeadPawns = 0;
+    gameState->p2DeadPawns = 0;
+    gameState->p1BornPawns = 0;
+    gameState->p2BornPawns = 0;
     //two dimensional array
-    char p1 = '1';
-    char p2 = '2';
-    char sup = '-';
-    char sdown = '-';
     for (int j = 0; j < 5; j++) {
         for (int i = 0; i < 12; i++) {
-            topBoard[i][j] = sdown;
+            gameState->topBoard[i][j] = BLANK;
             if (i == 0 || (i == 11 && j < 2)) {
-                topBoard[i][j] = p1;
+                gameState->topBoard[i][j] = PLAYER1_SYM;
             }
             if ((i == 4 && j < 3) || i == 6) {
-                topBoard[i][j] = p2;
+                gameState->topBoard[i][j] = PLAYER2_SYM;
             }
         }
     }
-
-
     printf("\n");
-
     for (int j = 0; j < 5; j++) {
         for (int i = 0; i < 12; i++) {
-            bottomBoard[i][j] = sup;
+            gameState->bottomBoard[i][j] = BLANK;
             if (i == 0 || (i == 11 && j > 2)) {
-                bottomBoard[i][j] = p2;
+                gameState->bottomBoard[i][j] = PLAYER2_SYM;
             }
             if ((i == 4 && j > 1) || i == 6) {
-                bottomBoard[i][j] = p1;
+                gameState->bottomBoard[i][j] = PLAYER1_SYM;
             }
         }
     }
 }
 
-void printMenu(int p1DeadPawns, int p2DeadPawns, int p1Points, int p2Points) {
-    printf("  > PLA1 - bornPawns: [%d] - deadPawns: [%d] <\n\n", p1Points, p1DeadPawns);
-    printf("  > PLA2 - bornPawns: [%d] - deadPawns: [%d] <\n\n", p2Points, p2DeadPawns);
+void printMenu(struct GameState* gameState) {
+    printf("  > PLA1 - bornPawns: [%d] - deadPawns: [%d] <\n\n", gameState->p1BornPawns, gameState->p1DeadPawns);
+    printf("  > PLA2 - bornPawns: [%d] - deadPawns: [%d] <\n\n", gameState->p2BornPawns, gameState->p2DeadPawns);
 }
 
 void printFieldHighlights(int x, bool highlight[24]) {
@@ -116,8 +144,8 @@ void printFieldHighlights(int x, bool highlight[24]) {
     }
 }
 
-void printBoard(char topBoard[][5], char bottomBoard[][5], int p1DeadPawns, int p2DeadPawns, int p1Points, int p2Points, bool highlight[24]) {
-    printMenu(p1DeadPawns, p2DeadPawns, p1Points, p2Points);
+void printBoard(struct GameState* gameState, bool highlight[24]) {
+    printMenu(gameState);
     printFieldHighlights(1, highlight);
     printf("   13 14 15 16 17 18      19 20 21 22 23 24  \n");//3 5 1; every number print space; if highlight[field] = true print [#] if false print #
     printf("  +-----------------------------------------+\n");
@@ -127,10 +155,10 @@ void printBoard(char topBoard[][5], char bottomBoard[][5], int p1DeadPawns, int 
                 printf("%d | ", j + 1);
             }
             if (i == 11 || i == 5) {
-                printf("%c", topBoard[i][j]);
+                printf("%c", gameState->topBoard[i][j]);
             }
             else {
-                printf("%c  ", topBoard[i][j]);
+                printf("%c  ", gameState->topBoard[i][j]);
             }
             if (i == 11) {
                 printf(" | %d", j + 1);
@@ -150,10 +178,10 @@ void printBoard(char topBoard[][5], char bottomBoard[][5], int p1DeadPawns, int 
                 printf("%d | ", 5 - j);
             }
             if (i == 11 || i == 5) {
-                printf("%c", bottomBoard[i][j]);
+                printf("%c", gameState->bottomBoard[i][j]);
             }
             else {
-                printf("%c  ", bottomBoard[i][j]);
+                printf("%c  ", gameState->bottomBoard[i][j]);
             }
             if (i == 11) {
                 printf(" | %d", 5 - j);
@@ -181,23 +209,29 @@ void fieldDecryption(int *field) {
     }
 }
 
-// void pawnDecryption(int field, int pawn) {
-//     if (field <= 24 && field >= 13) {
-//         pawn -= 1;
-//     }
-//     else if (field <= 12 && field >= 1) {
-//         pawn -= 5;
-//         if (pawn < 0) {
-//             pawn = -pawn;
-//         }
-//     }
-// }
-
-int getNumericInput() {
+int getNumericInput(struct GameState* gameState, int field, int pawn, bool highlight[24], int whoStarts) {
     char input[3]; // We need space for two digits and the null terminator
     int digit;
 
     fgets(input, sizeof(input), stdin); // Read input as a string
+
+    // Check if the input is 's'
+    if (input[0] == 's' || input[0] == 'S' && (input[1] == '\n' || input[1] == '\0')) {
+        printf("Saving the game...\n");
+        saveGameState("game_state.bin", gameState);
+        printf("[Q] - close app\n");
+        printf("[R] - play again\n");
+        printf("Choose next action: ");
+        fgets(input, sizeof(input), stdin);
+        if (input[0] == 'Q' || input[0] == 'q' && (input[1] == '\n' || input[1] == '\0')) {
+            exit(0);
+        }
+        else if (input[0] == 'R' || input[0] == 'r' && (input[1] == '\n' || input[1] == '\0')) {
+            clearScreen();
+            printMenuChoice();
+            entryMenuChoice(field, pawn, gameState, highlight, whoStarts);
+        }
+    }
 
     // Clear the input buffer
     if (input[strlen(input) - 1] != '\n') {
@@ -221,71 +255,34 @@ void clearScreen() {
     system("cls");
 }
 
-// void nextMatchQuestion() {
-//     //after a player has won a match both the players get a question if they want to continue and go for BEST OF 3
-//     if (p1Points == 1 || p2Points == 1) {
-//         char p1a, p2a;
-//         clearScreen();
-//         printf("\rYou can either finish your game here or continue to best of 3!!");
-//         fflush(stdout); 
-//         Sleep(2);
-//         printf("\rBoth players have to agree to the best of 3.");
-//         fflush(stdout); 
-//         Sleep(2);
-//         printf("\rDoes player 1 agree to the best of 3?");
-//         fflush(stdout); 
-//         Sleep(1);
-//         printf("\rClick Y or N: ");;
-//         scanf("%s", p1a);
-//         fflush(stdout); 
-//         Sleep(2);
-//         printf("\rDoes player 2 agree to the best of 3?");
-//         fflush(stdout); 
-//         Sleep(1);
-//         printf("\rClick Y or N: ");;
-//         scanf("%s", p2a);
-//     }
-
-//     if (p1a == 'y' && p2a == 'y') {
-//         printBoard(topBoard, bottomBoard);
-//         playerMovement(field, pawn, topBoard, bottomBoard, whoStarts, p1DeadPawns, p2DeadPawns);
-//     }
-
-// }
-
-void highlightFields(char x, char topBoard[][5], char bottomBoard[][5], bool highlight[24]) {
+void highlightFields(char x, struct GameState* gameState, bool highlight[24]) {
     for (int i = 0; i <= 11; i++) {
-        if (topBoard[i][0] == x) {
+        if (gameState->topBoard[i][0] == x) {
             highlight[i] = true;
         }
-        if (bottomBoard[i][4] == x) {
+        if (gameState->bottomBoard[i][4] == x) {
             highlight[i+12] = true;
         }
     }
 }
 
-void undoHighlight(char x, char topBoard[][5], char bottomBoard[][5], bool highlight[24]) {
+void undoHighlight(char x, struct GameState* gameState, bool highlight[24]) {
     for (int i = 0; i <= 11; i++) {
-        if (topBoard[i][0] == x) {
+        if (gameState->topBoard[i][0] == x) {
             highlight[i] = false;
         }
-        if (bottomBoard[i][4] == x) {
+        if (gameState->bottomBoard[i][4] == x) {
             highlight[i+12] = false;
         }
     }
 }
 
-/*void forceHit() {
-
-}*/
-
-void saveGameState(const char* filename, char topBoard[][5], char bottomBoard[][5]) {
+void saveGameState(const char* filename, struct GameState* gameState) {
     FILE* file = fopen(filename, "wb"); // Open file for writing in binary mode
 
     if (file != NULL) {
-        // Write the game state structure to the file
-        fwrite(topBoard, sizeof(char), 12 * 5, file);
-        fwrite(bottomBoard, sizeof(char), 12 * 5, file);
+        // Write the entire game state structure to the file
+        fwrite(gameState, sizeof(struct GameState), 1, file);
         fclose(file);
     }
     else {
@@ -293,14 +290,12 @@ void saveGameState(const char* filename, char topBoard[][5], char bottomBoard[][
     }
 }
 
-// Function to load the game state from a file
-void loadGameState(const char* filename, char topBoard[][5], char bottomBoard[][5]) {
+void loadGameState(const char* filename, struct GameState* gameState) {
     FILE* file = fopen(filename, "rb"); // Open file for reading in binary mode
 
     if (file != NULL) {
-        // Read the game state structure from the file
-        fread(topBoard, sizeof(char), 12 * 5, file);
-        fread(bottomBoard, sizeof(char), 12* 5, file);
+        // Read the entire game state structure from the file
+        fread(gameState, sizeof(struct GameState), 1, file);
         fclose(file);
     }
     else {
@@ -308,51 +303,137 @@ void loadGameState(const char* filename, char topBoard[][5], char bottomBoard[][
     }
 }
 
+int isFileEmpty(const char* filename, struct GameState* gameState) {
+    FILE* file = fopen(filename, "r"); // Open the file in read mode
+    if (file == NULL) {
+        perror("Error opening file"); // Handle file opening error
+        return -1;
+    }
 
-//movement for player 1 'O'
-void playerMovement(int field, int pawn, char topBoard[][5], char bottomBoard[][5], int whoseTurn, int p1DeadPawns, int p2DeadPawns, int p1Points, int p2Points, bool highlight[24]) {
+    // Move the file pointer to the end of the file
+    fseek(file, 0, SEEK_END);
+
+    // Get the position of the file pointer, which indicates the file size
+    long size = ftell(file);
+
+    fclose(file); // Close the file
+
+    // Check if the file size is zero
+    if (size == 0) {
+        setPawnsDefault(gameState); // File is empty
+
+    }
+    else {
+        loadGameState("game_state.bin", gameState); // File is not empty
+
+    }
+}
+
+void ifDeadPawns(int field, int pawn, struct GameState* gameState, bool highlight[24], int whoStarts) {
+    if (gameState->p1DeadPawns > 0 && gameState->whoseTurn == 1) {
+        gameState->whoseTurn = 10;
+        playerMovement(field, pawn, gameState, highlight, whoStarts);
+    }
+    if (gameState->p2DeadPawns > 0 && gameState->whoseTurn == 2) {
+        gameState->whoseTurn = 20;
+        playerMovement(field, pawn, gameState, highlight, whoStarts);
+    }
+}
+
+int rollingDie(struct GameState* gameState) {
+    int x;
+    x = rand() % 6 + 1;
+    printf("Player %d rolled %d\n", gameState->whoseTurn, x);
+    return x;
+}
+
+int nextPlayer(struct GameState* gameState) {
+    if (gameState->whoseTurn == 1) {
+        gameState->whoseTurn = 2;
+        return gameState->whoseTurn;
+    }
+    else if (gameState->whoseTurn == 2) {
+        gameState->whoseTurn = 1;
+        return gameState->whoseTurn;
+    }
+}
+
+void endingMove(int field, int pawn, struct GameState* gameState, bool highlight[24], int nextPlayer, int whoStarts) {
+    clearScreen();
+    printBoard(gameState, highlight);
+    gameState->whoseTurn = nextPlayer;
+    playerMovement(field, pawn, gameState, highlight, whoStarts);
+}
+
+int pawnInput(int player, string board, struct GameState* gameState, int pawn, int field) {
+    // player 1 - player = 1; 
+    // player 2 - player = 2; 
+    // topboard - board = 'top';
+    // bottomboard - board = 'bot';
+    if (board == "bottom") {
+        for (int j = 0; j < 5; j++) {
+            if (gameState->bottomBoard[field][j] == player) {
+                pawn = j;
+                break; // Exit loop once pawn is found
+            }
+        }
+    }
+    if (board == "top") {
+        for (int j = 4; j >= 0; j--) {
+            if (gameState->topBoard[field][j] == player) {
+                pawn = j;
+                break; // Exit loop once pawn is found
+            }
+        }
+    }
+    return pawn;
+}
+
+int enterFieldNumber(int field, struct GameState* gameState, bool highlight[24], int pawn, int whoStarts) {
+    printf("Enter move info...");
+    fflush(stdout);
+    Sleep(1);
+    printf("\rEnter field number: ");
+    field = getNumericInput(gameState, field, pawn, highlight, whoStarts);
+    return field;
+}
+
+void endGame(struct GameState* gameState) {
+    if (gameState->p1BornPawns == 15 || gameState->p2BornPawns == 15) {
+        gameState->whoseTurn = nextPlayer(gameState);
+        clearScreen();
+        printf("Player %d won the game!!!", gameState->whoseTurn);
+        fflush(stdout);
+        Sleep(5);
+        exit(0);
+    }
+}
+
+void playerMovement(int field, int pawn, struct GameState* gameState, bool highlight[24], int whoStarts) {
     int dieRoll;
     int nextPos;
-    char p1 = '1';
-    char p2 = '2';
-    if (p1DeadPawns > 0 && whoseTurn == 1) {
-        playerMovement(field, pawn, topBoard, bottomBoard, 10, p1DeadPawns, p2DeadPawns, p1Points, p2Points, highlight);
-    }
-    if (p2DeadPawns > 0 && whoseTurn == 2) {
-        playerMovement(field, pawn, topBoard, bottomBoard, 20, p1DeadPawns, p2DeadPawns, p1Points, p2Points, highlight);
-    }
-    //PLAYER ONE MOVEMENT OOOOOOOOOOOOO
-    if (whoseTurn == 1) {
-        dieRoll = rand() % 6 + 1;
-        highlightFields(p1, topBoard, bottomBoard, highlight);
+    endGame(gameState);
+    ifDeadPawns(field, pawn, gameState, highlight, whoStarts);
+    //PLAYER ONE MOVEMENT
+    if (gameState->whoseTurn == 1) {
+        highlightFields(PLAYER1_SYM, gameState, highlight);
         clearScreen();
-        printBoard(topBoard, bottomBoard, p1DeadPawns, p2DeadPawns, p1Points, p2Points, highlight);
-        printf("Player 1 rolled [%d]\n", dieRoll);
-        Sleep(3);
+        printBoard(gameState, highlight);
+        dieRoll = rollingDie(gameState);
     chooseAgain1:
-        printf("Enter move info...");
-        fflush(stdout);
-        Sleep(1);
-        printf("\rEnter field number: ");
-        field = getNumericInput();
-        undoHighlight(p1, topBoard, bottomBoard, highlight);
+        field = enterFieldNumber(field, gameState, highlight, pawn, whoStarts);
+        undoHighlight(PLAYER1_SYM, gameState, highlight); // only after entering field number
+
         if (field != -1) {
             //TOP BOARD
             if (field <= 24 && field >= 13) {
-                //pawnDecryption(&field, &pawn);
                 fieldDecryption(&field);
-                for (int j = 4; j >= 0; j--) {
-                    if (topBoard[field][j] == '1') {
-                        pawn = j;
-                        break; // Exit loop once pawn is found
-                    }
-                }
-                Sleep(2);
+                pawn = pawnInput(PLAYER1_SYM, "top", gameState, pawn, field);
 
                 //PRIME DENIAL
                 if (field - dieRoll >= -1) {
                     for (int i = 0; i < dieRoll; i++) {
-                        if (topBoard[field - dieRoll + i][0] == '2' && topBoard[field - dieRoll + i][1] == '2' && topBoard[field - dieRoll + i + 1][0] == '2' && topBoard[field - dieRoll + i + 1][1] == '2') {
+                        if (gameState->topBoard[field - dieRoll + i][0] == PLAYER2_SYM && gameState->topBoard[field - dieRoll + i][1] == PLAYER2_SYM && gameState->topBoard[field - dieRoll + i + 1][0] == PLAYER2_SYM && gameState->topBoard[field - dieRoll + i + 1][1] == PLAYER2_SYM) {
                             printf("A prime is blocking the move. Choose again.\n");
                             goto chooseAgain1;
                         }
@@ -360,7 +441,7 @@ void playerMovement(int field, int pawn, char topBoard[][5], char bottomBoard[][
                 }
                 else if (field - dieRoll == -2) {
                     for (int i = 0; i < dieRoll; i++) {
-                        if (bottomBoard[0][4] == '2' && bottomBoard[0][3] == '2' && topBoard[0][0] == '2' && topBoard[0][1] == '2') {
+                        if (gameState->bottomBoard[0][4] == PLAYER2_SYM && gameState->bottomBoard[0][3] == PLAYER2_SYM && gameState->topBoard[0][0] == PLAYER2_SYM && gameState->topBoard[0][1] == PLAYER2_SYM) {
                             printf("A prime is blocking the move. Choose again.\n");
                             goto chooseAgain1;
                         }
@@ -369,7 +450,7 @@ void playerMovement(int field, int pawn, char topBoard[][5], char bottomBoard[][
                 else if (field - dieRoll < -2) {
                     for (int i = 0; i < dieRoll; i++) {
                         int delta = -(field - dieRoll + 1);
-                        if (bottomBoard[delta + i][0] == '2' && bottomBoard[delta + i][1] == '2' && bottomBoard[delta + i + 1][0] == '2' && bottomBoard[delta + i + 1][1] == '2') {
+                        if (gameState->bottomBoard[delta + i][0] == PLAYER2_SYM && gameState->bottomBoard[delta + i][1] == PLAYER2_SYM && gameState->bottomBoard[delta + i + 1][0] == PLAYER2_SYM && gameState->bottomBoard[delta + i + 1][1] == PLAYER2_SYM) {
                             printf("A prime is blocking the move. Choose again.\n");
                             goto chooseAgain1;
                         }
@@ -377,103 +458,88 @@ void playerMovement(int field, int pawn, char topBoard[][5], char bottomBoard[][
                 }
 
                 //ENEMY ANCHOR DENIAL
-                if (topBoard[field - dieRoll][0] == '2' && topBoard[field - dieRoll][1] == '2' && field - dieRoll >= 0) {
+                if (gameState->topBoard[field - dieRoll][0] == PLAYER2_SYM && gameState->topBoard[field - dieRoll][1] == PLAYER2_SYM && field - dieRoll >= 0) {
                     printf("An anchor is blocking the move. Choose again.\n");
                     goto chooseAgain1;
                 }
                 else if (field - dieRoll < 0) {
                     int delta = -(field - dieRoll + 1);
-                    if (bottomBoard[delta][4] == '2' && bottomBoard[delta][3] == '2') {
+                    if (gameState->bottomBoard[delta][4] == PLAYER2_SYM && gameState->bottomBoard[delta][3] == PLAYER2_SYM) {
                         printf("An anchor is blocking the move. Choose again.\n");
                         goto chooseAgain1;
                     }
                 }
 
                 //FULL SELF ANCHOR
-                if (topBoard[field - dieRoll][4] == '1') {
+                if (gameState->topBoard[field - dieRoll][4] == PLAYER1_SYM) {
                     printf("Cannot move pawn. Destination field is full.\n");
                     goto chooseAgain1;
                 }
 
-                //CHOOSING SPACE DENIAL, CHOOSING WRONG TEAM DENIAL, CHOOSING A PAWN THATS NOT ON THE TOP OF THE STACK DENIAL
-                //if (topBoard[field][pawn + 1] != '1' && topBoard[field][pawn] != '-' && topBoard[field][pawn] != '2') {
-                    //HITTING MECHANIC
-                    if (topBoard[field - dieRoll][0] == '2' && topBoard[field - dieRoll][1] == '-' && field - dieRoll >= 0) {
-                        topBoard[field - dieRoll][0] = '1';
-                        p2DeadPawns += 1;
-                        //goto pOneMoveEnd;
-                    }
+                //HITTING MECHANIC
+                if (gameState->topBoard[field - dieRoll][0] == PLAYER2_SYM && gameState->topBoard[field - dieRoll][1] == BLANK && field - dieRoll >= 0) {
+                    gameState->topBoard[field - dieRoll][0] = PLAYER1_SYM;
+                    gameState->p2DeadPawns += 1;
+                }
 
-                    //MOVING FROM TOP BOARD TO BOTTOM BOARD
-                    else if (field - dieRoll < 0) {
-                        int delta = -(field - dieRoll + 1);
-                        if (bottomBoard[delta][4] == '2' && bottomBoard[delta][3] == '-') {
-                            bottomBoard[delta][4] = '1';
-                            p2DeadPawns += 1;
-                        }
-                        else {
-                            topBoard[field][pawn] = '-';
-                            for (int j = 4; j >= 0; j--) {
-                                if (bottomBoard[field + delta][j] == '-') {
-                                    nextPos = j;
-                                    break;
-                                }
-                            }
-                            bottomBoard[delta][nextPos] = '1';
-                        }
+                //MOVING FROM TOP BOARD TO BOTTOM BOARD
+                else if (field - dieRoll < 0) {
+                    int delta = -(field - dieRoll + 1);
+                    if (gameState->bottomBoard[delta][4] == PLAYER2_SYM && gameState->bottomBoard[delta][3] == BLANK) {
+                        gameState->bottomBoard[delta][4] = PLAYER1_SYM;
+                        gameState->p2DeadPawns += 1;
                     }
-
-                    // NORMAL MOVEMENT
                     else {
-                        topBoard[field][pawn] = '-';
-                        for (int j = 0; j < 5; j++) {
-                            if (topBoard[field - dieRoll][j] == '-') {
+                        gameState->topBoard[field][pawn] = BLANK;
+                        for (int j = 4; j >= 0; j--) {
+                            if (gameState->bottomBoard[field + delta][j] == BLANK) {
                                 nextPos = j;
                                 break;
                             }
                         }
-                        topBoard[field - dieRoll][nextPos] = '1';
+                        gameState->bottomBoard[delta][nextPos] = PLAYER1_SYM;
                     }
-                //}
-                //else {
-                    //printf("Illegal pawn choice. Choose again.\n");
-                    //goto chooseAgain1;
-                //}
+                }
 
+                // NORMAL MOVEMENT
+                else {
+                    gameState->topBoard[field][pawn] = BLANK;
+                    for (int j = 0; j < 5; j++) {
+                        if (gameState->topBoard[field - dieRoll][j] == BLANK) {
+                            nextPos = j;
+                            break;
+                        }
+                    }
+                    gameState->topBoard[field - dieRoll][nextPos] = PLAYER1_SYM;
+                }
             }
 
             // BOTTOM BOARD
             else if (field <= 12 && field >= 1) {
-                //pawnDecryption(&field, &pawn)
                 fieldDecryption(&field);
-                for (int j = 0; j < 5; j++) {
-                    if (bottomBoard[field][j] == '1') {
-                        pawn = j;
-                        break; // Exit loop once pawn is found
-                    }
-                }
-
+                pawn = pawnInput(PLAYER1_SYM, "bottom", gameState, pawn, field);
                 //BEARING OFF FOR PLAYER 1
                 if (field + dieRoll > 11) {
                     int count = 0;
                     for (int j = 0; j < 5; j++) {
                         for (int i = 6; i <= 11; i++) {
-                            if (bottomBoard[i][j] == '1') {
+                            if (gameState->bottomBoard[i][j] == PLAYER1_SYM) {
                                 count++;
                             }
                         }
                     }
                     if (count == 15) {
-                        p1Points++;
-                        bottomBoard[field][pawn] = '-';
+                        gameState->p1BornPawns++;
+                        gameState->bottomBoard[field][pawn] = BLANK;
                         printf("Player 1 has bore off a pawn.. +1 points!!");
                         Sleep(2);
                         clearScreen();
-                        printBoard(topBoard, bottomBoard, p1DeadPawns, p2DeadPawns, p1Points, p2Points, highlight);
-                        playerMovement(field, pawn, topBoard, bottomBoard, 2, p1DeadPawns, p2DeadPawns, p1Points, p2Points, highlight);
+                        printBoard(gameState, highlight);
+                        gameState->whoseTurn = 2;
+                        playerMovement(field, pawn, gameState, highlight, whoStarts);
                     }
                     else {
-                        printf("Can't bear off pawn. Make sure all the pawns are in the enemy home board.\n");
+                        printf("\rCan't bear off pawn. Make sure all the pawns are in the enemy home board.\n");
                         goto chooseAgain1;
                     }
 
@@ -481,50 +547,41 @@ void playerMovement(int field, int pawn, char topBoard[][5], char bottomBoard[][
 
                 // PRIME DENIAL
                 for (int i = 0; i < dieRoll; i++) {
-                    if (bottomBoard[field + dieRoll - i][4] == '2' && bottomBoard[field + dieRoll - i][3] == '2' && bottomBoard[field + dieRoll - i - 1][4] == '2' && bottomBoard[field + dieRoll - i - 1][3] == '2') {
+                    if (gameState->bottomBoard[field + dieRoll - i][4] == PLAYER2_SYM && gameState->bottomBoard[field + dieRoll - i][3] == PLAYER2_SYM && gameState->bottomBoard[field + dieRoll - i - 1][4] == PLAYER2_SYM && gameState->bottomBoard[field + dieRoll - i - 1][3] == PLAYER2_SYM) {
                         printf("A prime is blocking the move. Choose again.\n");
                         goto chooseAgain1;
                     }
                 }
 
                 //ENEMY ANCHOR DENIAL
-                if (bottomBoard[field + dieRoll][4] == '2' && bottomBoard[field + dieRoll][3] == '2') {
+                if (gameState->bottomBoard[field + dieRoll][4] == PLAYER2_SYM && gameState->bottomBoard[field + dieRoll][3] == PLAYER2_SYM) {
                     printf("An anchor is blocking the move. Choose again.\n");
                     goto chooseAgain1;
                 }
 
                 //FULL SELF ANCHOR
-                if (bottomBoard[field + dieRoll][0] == '1') {
+                if (gameState->bottomBoard[field + dieRoll][0] == PLAYER1_SYM) {
                     printf("Cannot move pawn. Destination field is full.\n");
                     goto chooseAgain1;
                 }
-
-                //CHOOSING SPACE DENIAL, CHOOSING WRONG TEAM DENIAL, CHOOSING A PAWN THATS NOT ON THE TOP OF THE STACK DENIAL
-                //if (bottomBoard[field][pawn - 1] != '1' && bottomBoard[field][pawn] != '-' && bottomBoard[field][pawn] != '2') {
                     //HITTING MECHANIC
-                if (bottomBoard[field + dieRoll][4] == '2' && bottomBoard[field + dieRoll][3] == '-') {
-                    bottomBoard[field + dieRoll][4] = '1';
-                    p2DeadPawns += 1;
-                    //goto pOneMoveEnd;
+                if (gameState->bottomBoard[field + dieRoll][4] == PLAYER2_SYM && gameState->bottomBoard[field + dieRoll][3] == BLANK) {
+                    gameState->bottomBoard[field + dieRoll][4] = PLAYER1_SYM;
+                    gameState->p2DeadPawns += 1;
                 }
 
-                    //NORMAL MOVEMENT IN BOTTOM BOARD
+                //NORMAL MOVEMENT IN BOTTOM BOARD
                 else {
-                    bottomBoard[field][pawn] = '-';
+                    gameState->bottomBoard[field][pawn] = BLANK;
                     for (int j = 4; j >= 0; j--) {
-                        if (bottomBoard[field + dieRoll][j] == '-') {
+                        if (gameState->bottomBoard[field + dieRoll][j] == BLANK) {
                             nextPos = j;
                             break;
                         }
                     }
-                    bottomBoard[field + dieRoll][nextPos] = '1';
+                    gameState->bottomBoard[field + dieRoll][nextPos] = PLAYER1_SYM;
                 }
-            //}
-                //else {
-                    //printf("Illegal pawn choice. Choose again.\n");
-                    //goto chooseAgain1;
-                //}
-        }
+            }
 
             //ERROR MESSAGES WHEN INVALID INPUT FOR FIELD AND PAWN
         }
@@ -533,45 +590,29 @@ void playerMovement(int field, int pawn, char topBoard[][5], char bottomBoard[][
         }
 
         //ENDING MOVE
-        //pOneMoveEnd:
-        clearScreen();
-        printBoard(topBoard, bottomBoard, p1DeadPawns, p2DeadPawns, p1Points, p2Points, highlight);
-        playerMovement(field, pawn, topBoard, bottomBoard, 2, p1DeadPawns, p2DeadPawns, p1Points, p2Points, highlight);
+        endingMove(field, pawn, gameState, highlight, 2, whoStarts);
     }
 
     //PLAYER TWO MOVEMENT XXXXXXXXXXXXXXXXXX
-    else if (whoseTurn == 2) {
-        dieRoll = rand() % 6 + 1;
-        highlightFields(p2, topBoard, bottomBoard, highlight);
+    else if (gameState->whoseTurn == 2) {
+        highlightFields(PLAYER2_SYM, gameState, highlight);
+
         clearScreen();
-        printBoard(topBoard, bottomBoard, p1DeadPawns, p2DeadPawns, p1Points, p2Points, highlight);
-        printf("Player 2 rolled [%d]\n", dieRoll);
-        Sleep(3);
+        printBoard(gameState, highlight);
+        dieRoll = rollingDie(gameState);
     chooseAgain2:
-        printf("Enter move info...");
-        fflush(stdout);
-        Sleep(1);
-        printf("\rEnter field number: ");
-        field = getNumericInput();
-        undoHighlight(p2, topBoard, bottomBoard, highlight);
+        field = enterFieldNumber(field, gameState, highlight, pawn, whoStarts);
+        undoHighlight(PLAYER2_SYM, gameState, highlight);
+
         if (field != -1) {
             //BOTTOM BOARD
             if (field <= 12 && field >= 1) {
-                //pawnDecryption(&field, &pawn);
-
-
                 fieldDecryption(&field);
-                for (int j = 0; j < 5; j++) {
-                    if (bottomBoard[field][j] == '2') {
-                        pawn = j;
-                        break; // Exit loop once pawn is found
-                    }
-                }
-
+                pawn = pawnInput(PLAYER2_SYM, "bottom", gameState, pawn, field);
                 //PRIME DENIAL
                 if (field - dieRoll >= -1) {
                     for (int i = 0; i < dieRoll; i++) {
-                        if (bottomBoard[field - dieRoll + i][0] == '1' && bottomBoard[field - dieRoll + i][1] == '1' && bottomBoard[field - dieRoll + i + 1][0] == '1' && bottomBoard[field - dieRoll + i + 1][1] == '1') {
+                        if (gameState->bottomBoard[field - dieRoll + i][0] == PLAYER1_SYM && gameState->bottomBoard[field - dieRoll + i][1] == PLAYER1_SYM && gameState->bottomBoard[field - dieRoll + i + 1][0] == PLAYER1_SYM && gameState->bottomBoard[field - dieRoll + i + 1][1] == PLAYER1_SYM) {
                             printf("A prime is blocking the move. Choose again.\n");
                             goto chooseAgain2;
                         }
@@ -579,7 +620,7 @@ void playerMovement(int field, int pawn, char topBoard[][5], char bottomBoard[][
                 }
                 else if (field - dieRoll == -2) {
                     for (int i = 0; i < dieRoll; i++) {
-                        if (bottomBoard[0][4] == '1' && bottomBoard[0][3] == '1' && topBoard[0][0] == '1' && topBoard[0][1] == '1') {
+                        if (gameState->bottomBoard[0][4] == PLAYER1_SYM && gameState->bottomBoard[0][3] == PLAYER1_SYM && gameState->topBoard[0][0] == PLAYER1_SYM && gameState->topBoard[0][1] == PLAYER1_SYM) {
                             printf("A prime is blocking the move. Choose again.\n");
                             goto chooseAgain2;
                         }
@@ -588,7 +629,7 @@ void playerMovement(int field, int pawn, char topBoard[][5], char bottomBoard[][
                 else if (field - dieRoll < -2) {
                     for (int i = 0; i < dieRoll; i++) {
                         int delta = -(field - dieRoll + 1);
-                        if (topBoard[delta + i][0] == '1' && topBoard[delta + i][1] == '1' && topBoard[delta + i + 1][0] == '1' && topBoard[delta + i + 1][1] == '1') {
+                        if (gameState->topBoard[delta + i][0] == PLAYER1_SYM && gameState->topBoard[delta + i][1] == PLAYER1_SYM && gameState->topBoard[delta + i + 1][0] == PLAYER1_SYM && gameState->topBoard[delta + i + 1][1] == PLAYER1_SYM) {
                             printf("A prime is blocking the move. Choose again.\n");
                             goto chooseAgain2;
                         }
@@ -596,104 +637,89 @@ void playerMovement(int field, int pawn, char topBoard[][5], char bottomBoard[][
                 }
 
                 //ENEMY ANCHOR DENIAL
-                if (bottomBoard[field - dieRoll][4] == '1' && bottomBoard[field - dieRoll][3] == '1' && field - dieRoll >= 0) {
+                if (gameState->bottomBoard[field - dieRoll][4] == PLAYER1_SYM && gameState->bottomBoard[field - dieRoll][3] == PLAYER1_SYM && field - dieRoll >= 0) {
                     printf("An anchor is blocking the move. Choose again.\n");
                     goto chooseAgain2;
                 }
                 else if (field - dieRoll < 0) {
                     int delta = -(field - dieRoll + 1);
-                    if (topBoard[delta][0] == '2' && topBoard[delta][1] == '1') {
+                    if (gameState->topBoard[delta][0] == PLAYER2_SYM && gameState->topBoard[delta][1] == PLAYER1_SYM) {
                         printf("An anchor is blocking the move. Choose again.\n");
                         goto chooseAgain2;
                     }
                 }
 
                 //FULL SELF ANCHOR
-                if (bottomBoard[field - dieRoll][0] == '2') {
+                if (gameState->bottomBoard[field - dieRoll][0] == PLAYER2_SYM) {
                     printf("Cannot move pawn. Destination field is full.\n");
                     goto chooseAgain2;
                 }
 
-                //CHOOSING SPACE DENIAL, CHOOSING WRONG TEAM DENIAL, CHOOSING A PAWN THATS NOT ON THE TOP OF THE STACK DENIAL
-                //if (bottomBoard[field][pawn - 1] != '2' && bottomBoard[field][pawn] != '-' && bottomBoard[field][pawn] != '1') {
-                    //HITTING MECHANIC
-                    if (bottomBoard[field - dieRoll][4] == '1' && bottomBoard[field - dieRoll][3] == '-' && field - dieRoll >= 0) {
-                        bottomBoard[field - dieRoll][4] = '2';
-                        p1DeadPawns += 1;
-                        //goto pTwoMoveEnd;
+                //HITTING MECHANIC
+                if (gameState->bottomBoard[field - dieRoll][4] == PLAYER1_SYM && gameState->bottomBoard[field - dieRoll][3] == BLANK && field - dieRoll >= 0) {
+                    gameState->bottomBoard[field - dieRoll][4] = PLAYER2_SYM;
+                    gameState->p1DeadPawns += 1;
+                }
+
+                //MOVING FROM BOTTOM BOARD TO TOP BOARD
+                else if (field - dieRoll < 0) {
+                    int delta = -(field - dieRoll + 1);
+                    if (gameState->topBoard[delta][0] == PLAYER1_SYM && gameState->topBoard[delta][1] == BLANK) {
+                        gameState->topBoard[delta][0] = PLAYER2_SYM;
+                        gameState->p1DeadPawns += 1;
                     }
-
-                    //MOVING FROM BOTTOM BOARD TO TOP BOARD
-                    else if (field - dieRoll < 0) {
-                        int delta = -(field - dieRoll + 1);
-                        if (topBoard[delta][0] == '1' && topBoard[delta][1] == '-') {
-                            topBoard[delta][0] = '2';
-                            p1DeadPawns += 1;
-                        }
-                        else {
-                            bottomBoard[field][pawn] = '-';
-                            for (int j = 0; j < 5; j++) {
-                                if (topBoard[field + delta][j] == '-') {
-                                    nextPos = j;
-                                    break;
-                                }
-                            }
-                            topBoard[delta][nextPos] = '2';
-                        }
-
-                    }
-
-                    //NORMAL MOVEMENT
                     else {
-                        bottomBoard[field][pawn] = '-';
-                        for (int j = 4; j >= 0; j--) {
-                            if (bottomBoard[field - dieRoll][j] == '-') {
+                        gameState->bottomBoard[field][pawn] = BLANK;
+                        for (int j = 0; j < 5; j++) {
+                            if (gameState->topBoard[field + delta][j] == BLANK) {
                                 nextPos = j;
                                 break;
                             }
                         }
-                        bottomBoard[field - dieRoll][nextPos] = '2';
+                        gameState->topBoard[delta][nextPos] = PLAYER2_SYM;
                     }
-                //}
-                //else {
-                    //printf("Illegal pawn choice. Choose again.\n");
-                    //goto chooseAgain2;
-                //}
 
+                }
+
+                //NORMAL MOVEMENT
+                else {
+                    gameState->bottomBoard[field][pawn] = BLANK;
+                    for (int j = 4; j >= 0; j--) {
+                        if (gameState->bottomBoard[field - dieRoll][j] == BLANK) {
+                            nextPos = j;
+                            break;
+                        }
+                    }
+                    gameState->bottomBoard[field - dieRoll][nextPos] = PLAYER2_SYM;
+                }
             }
 
             //TOP BOARD
             else if (field <= 24 && field >= 13) {
-                //pawnDecryption(&field, &pawn);
                 fieldDecryption(&field);
-                for (int j = 4; j >= 0; j--) {
-                    if (topBoard[field][j] == '2') {
-                        pawn = j;
-                        break; // Exit loop once pawn is found
-                    }
-                }
-
+                pawn = pawnInput(PLAYER2_SYM, "top", gameState, pawn, field);
                 //BEARING OFF FOR PLAYER 2
                 if (field + dieRoll > 11) {
                     int count = 0;
                     for (int j = 0; j < 5; j++) {
                         for (int i = 6; i <= 11; i++) {
-                            if (topBoard[i][j] == '1') {
+                            if (gameState->topBoard[i][j] == PLAYER1_SYM) {
                                 count++;
                             }
                         }
                     }
                     if (count == 15) {
-                        p2Points++;
-                        topBoard[field][pawn] = '-';
+                        gameState->p2BornPawns++;
+                        gameState->topBoard[field][pawn] = BLANK;
                         printf("Player 2 has bore off a pawn.. +1 points!!");
                         Sleep(2);
                         clearScreen();
-                        printBoard(topBoard, bottomBoard, p1DeadPawns, p2DeadPawns, p1Points, p2Points, highlight);
-                        playerMovement(field, pawn, topBoard, bottomBoard, 1, p1DeadPawns, p2DeadPawns, p1Points, p2Points, highlight);
+                        printBoard(gameState, highlight);
+                        gameState->whoseTurn = 1;
+                        playerMovement(field, pawn, gameState, highlight, whoStarts);
                     }
                     else {
-                        printf("Can't bear off pawn. Make sure all the pawns are in the enemy home board.");
+                        printf("\rCan't bear off pawn. Make sure all the pawns are in the enemy home board.\n\n");
                         goto chooseAgain2;
                     }
 
@@ -701,166 +727,150 @@ void playerMovement(int field, int pawn, char topBoard[][5], char bottomBoard[][
 
                 //PRIME DENIAL
                 for (int i = 0; i < dieRoll; i++) {
-                    if (topBoard[field + dieRoll - i][0] == '1' && topBoard[field + dieRoll - i][1] == '1' && topBoard[field + dieRoll - i - 1][0] == '1' && topBoard[field + dieRoll - i - 1][1] == '1') {
+                    if (gameState->topBoard[field + dieRoll - i][0] == PLAYER1_SYM && gameState->topBoard[field + dieRoll - i][1] == PLAYER1_SYM && gameState->topBoard[field + dieRoll - i - 1][0] == PLAYER1_SYM && gameState->topBoard[field + dieRoll - i - 1][1] == PLAYER1_SYM) {
                         printf("A prime is blocking the move. Choose again.\n");
                         goto chooseAgain2;
                     }
                 }
 
                 //ENEMY ANCHOR DENIAL
-                if (topBoard[field + dieRoll][0] == '1' && topBoard[field + dieRoll][1] == '1') {
+                if (gameState->topBoard[field + dieRoll][0] == PLAYER1_SYM && gameState->topBoard[field + dieRoll][1] == PLAYER1_SYM) {
                     printf("An anchor is blocking the move. Choose again.\n");
                     goto chooseAgain2;
                 }
 
                 //FULL SELF ANCHOR
-                if (topBoard[field + dieRoll][4] == '2') {
+                if (gameState->topBoard[field + dieRoll][4] == PLAYER2_SYM) {
                     printf("Cannot move pawn. Destination field is full.\n");
                     goto chooseAgain2;
                 }
+                //HITTING MECHANIC
+                if (gameState->topBoard[field + dieRoll][0] == PLAYER1_SYM && gameState->topBoard[field + dieRoll][1] == BLANK && field + dieRoll <= 24) {
+                    gameState->topBoard[field + dieRoll][0] = PLAYER2_SYM;
+                    gameState->p1DeadPawns += 1;
+                    //goto pOneMoveEnd;
+                }
 
-
-                //CHOOSING SPACE DENIAL, CHOOSING WRONG TEAM DENIAL, CHOOSING A PAWN THATS NOT ON THE TOP OF THE STACK DENIAL
-                //if (topBoard[field][pawn + 1] != '2' && topBoard[field][pawn] != '-' && topBoard[field][pawn] != '1') {
-                    // HITTING MECHANIC
-                    if (topBoard[field + dieRoll][0] == '1' && topBoard[field + dieRoll][1] == '-') {
-                        topBoard[field + dieRoll][0] = '2';
-                        p1DeadPawns += 1;
-                        //goto pTwoMoveEnd;
-                    }
-
-                    //NORMAL MOVEMENT
-                    else {
-                        topBoard[field][pawn] = '-';
-                        for (int j = 0; j < 5; j++) {
-                            if (topBoard[field + dieRoll][j] == '-') {
-                                nextPos = j;
-                                break;
-                            }
+                //NORMAL MOVEMENT IN TOP BOARD
+                else {
+                    gameState->topBoard[field][pawn] = BLANK;
+                    for (int j = 0; j < 5; j++) {
+                        if (gameState->topBoard[field + dieRoll][j] == BLANK) {
+                            nextPos = j;
+                            break;
                         }
-                        topBoard[field + dieRoll][nextPos] = '2';
                     }
-                //}
-                //else {
-                    //printf("Illegal pawn choice. Choose again.\n");
-                    //goto chooseAgain2;
-                //}
-
+                    gameState->topBoard[field + dieRoll][nextPos] = PLAYER2_SYM;
+                }
             }
 
-            //ERROR MESSAGES FOR INPUTTING FIELD 
+            //ERROR MESSAGES WHEN INVALID INPUT FOR FIELD AND PAWN
         }
         else {
             printf("\rInvalid input! Please enter a numeric value.");
         }
+
         //ENDING MOVE
-        //pTwoMoveEnd:
+        endingMove(field, pawn, gameState, highlight, 1, whoStarts);
+    }
+        else if (gameState->whoseTurn == 10) {
+            dieRoll = rollingDie(gameState);
+            int delta = 12 - dieRoll;
+            if (gameState->topBoard[delta][0] == BLANK) {
+                gameState->topBoard[delta][0] = PLAYER1_SYM;
+                gameState->p1DeadPawns -= 1;
+                clearScreen();
+                printBoard(gameState, highlight);
+                printf("\rPlayer One's pawn was respawned on field number %d\n", 25 - dieRoll);
+                fflush(stdout);
+                Sleep(2);
+                endingMove(field, pawn, gameState, highlight, 2, whoStarts);
+            }
+            else {
+                printf("\rPlayer One's pawn couldn't respawn\n");
+                fflush(stdout);
+                Sleep(2);
+                endingMove(field, pawn, gameState, highlight, 2, whoStarts);
+            }
+
+    }
+
+        else if (gameState->whoseTurn == 20) {
+            dieRoll = rollingDie(gameState);
+            int delta = 12 - dieRoll;
+            if (gameState->bottomBoard[delta][4] == BLANK) {
+                gameState->bottomBoard[delta][4] = PLAYER2_SYM;
+                gameState->p2DeadPawns -= 1;
+                clearScreen();
+                printBoard(gameState, highlight);
+                printf("Player Two's pawn was respawned on field number %d", dieRoll);
+                fflush(stdout);
+                Sleep(2);
+                endingMove(field, pawn, gameState, highlight, 1, whoStarts);
+            }
+            else {
+                printf("Player Two's pawn couldn't respawn");
+                fflush(stdout);
+                Sleep(2);
+                endingMove(field, pawn, gameState, highlight, 1, whoStarts);
+            }
+    }
+}
+
+void printMenuChoice() {
+    string text = "[N] - NEW GAME\n[L] - LOAD SAVED GAME";
+    // Get the width of the terminal
+    int terminalWidth = static_cast<int>(cout.rdbuf()->in_avail());
+
+    // Calculate padding
+    int padding = (terminalWidth - text.length()) / 2;
+
+    // Print padding followed by text
+    for (int i = 0; i < padding; ++i) {
+        cout << " ";
+    }
+    cout << text << endl;
+}
+
+char getInput() {
+    char input;
+    input = _getch();
+    if (input != 110 && input != 108 && input != 78 && input != 76) {
+        printf("Wrong button pressed.");
+    }
+    else {
+        return input;
+    }
+}
+
+void entryMenuChoice(int field, int pawn, struct GameState* gameState, bool highlight[24], int whoStarts) {
+    int input = getInput();
+    if (input == 108 || input == 76) {  // l
         clearScreen();
-        printBoard(topBoard, bottomBoard, p1DeadPawns, p2DeadPawns, p1Points, p2Points, highlight);
-        playerMovement(field, pawn, topBoard, bottomBoard, 1, p1DeadPawns, p2DeadPawns, p1Points, p2Points, highlight);
+        loadGameState("game_state.bin", gameState);
+        printBoard(gameState, highlight);
+        playerMovement(field, pawn, gameState, highlight, whoStarts);
+    }   
+    else if (input == 110 || input == 78) { // n
+        clearScreen();
+        setPawnsDefault(gameState);
+        openingRoll(&whoStarts);
+        gameState->whoseTurn = whoStarts;
+        printBoard(gameState, highlight);
+        playerMovement(field, pawn, gameState, highlight, whoStarts);
     }
-
-    else if (whoseTurn == 10) {
-        dieRoll = rand() % 6 + 1;
-        printf("Player 1 rolled %d\n", dieRoll);
-        int delta = 12 - dieRoll;
-        if (topBoard[delta][0] == '-') {
-            topBoard[delta][0] = '1';
-            p1DeadPawns -= 1;
-            clearScreen();
-            printBoard(topBoard, bottomBoard, p1DeadPawns, p2DeadPawns, p1Points, p2Points, highlight);
-            printf("\rPlayer One's pawn was respawned on field number %d\n", 25 - dieRoll);
-            fflush(stdout);
-            Sleep(2);
-            playerMovement(field, pawn, topBoard, bottomBoard, 2, p1DeadPawns, p2DeadPawns, p1Points, p2Points, highlight);
-        }
-        else {
-            printf("\rPlayer One's pawn couldn't respawn\n");
-            fflush(stdout);
-            Sleep(2);
-            playerMovement(field, pawn, topBoard, bottomBoard, 2, p1DeadPawns, p2DeadPawns, p1Points, p2Points, highlight);
-        }
-
-    }
-
-    else if (whoseTurn == 20) {
-        dieRoll = rand() % 6 + 1;
-        printf("Player 2 rolled %d\n", dieRoll);
-        int delta = 12 - dieRoll;
-        if (bottomBoard[delta][4] == '-') {
-            bottomBoard[delta][4] = '2';
-            p2DeadPawns -= 1;
-            clearScreen();
-            printBoard(topBoard, bottomBoard, p1DeadPawns, p2DeadPawns, p1Points, p2Points, highlight);
-            printf("Player Two's pawn was respawned on field number %d", dieRoll);
-            fflush(stdout);
-            Sleep(2);
-            playerMovement(field, pawn, topBoard, bottomBoard, 1, p1DeadPawns, p2DeadPawns, p1Points, p2Points, highlight);
-        }
-        else {
-            printf("Player Two's pawn couldn't respawn");
-            fflush(stdout);
-            Sleep(2);
-            playerMovement(field, pawn, topBoard, bottomBoard, 1, p1DeadPawns, p2DeadPawns, p1Points, p2Points, highlight);
-        }
-
-    }
-
 }
-
-bool checkForEscape() {
-    if (_kbhit()) { // Check if a key is pressed
-        char key = _getch(); // Read the key pressed
-        if (key == 27) { // 27 is the ASCII code for Escape key
-            exit(0); // Exit the program if Escape key is pressed
-        }
-    }
-    return false; // Return false otherwise
-}
-
 
 int main() {
-    int whoStarts; //  1 - player 1 starts, 2 - player 2 starts
-    char topBoard[12][5]; // board[24][5]
-    char bottomBoard[12][5];
+    int whoStarts = 0; //  1 - player 1 starts, 2 - player 2 starts
     bool highlight[24];
     int field = 0;
     int pawn = 0;
-    int p1DeadPawns = 0;
-    int p2DeadPawns = 0;
-    int p1Points = 0;
-    int p2Points = 0;
+    struct GameState gameState;
 
     srand(time(NULL));
-
-    setPawnsDefault(topBoard, bottomBoard);
-    openingRoll(&whoStarts);
-    printBoard(topBoard, bottomBoard, p1DeadPawns, p2DeadPawns, p1Points, p2Points, highlight);
-
-    while (true) {
-        // Your existing game logic...
-
-        // Check for Escape key press
-        if (checkForEscape()) {
-            // Close the game
-            break;
-        }
-
-        // Additional game logic here if needed
-        // For example, player movement or other actions
-        playerMovement(field, pawn, topBoard, bottomBoard, whoStarts, p1DeadPawns, p2DeadPawns, p1Points, p2Points, highlight);
-    }
-
-    // Any cleanup code here
+    printMenuChoice();
+    entryMenuChoice(field, pawn, &gameState, highlight, whoStarts);
 
     return 0;
 }
-
-//loadGameState("game_state.bin", topBoard, bottomBoard);
-//saveGameState("game_state.bin", topBoard, bottomBoard);
-
-    //  for (int j = 0; j < 5; j++) {
-    //     for (int i = 0; i < 12; i++) {
-    //         printf("%d %d %c\n", i, j, bottomBoard[i][j]);
-    //     }
-    //  }
