@@ -94,8 +94,11 @@ void setPawnsDefault(struct GameState* gameState) {
 }
 
 void printMenu(struct GameState* gameState) {
+    printf("     PRESS [S] AND ENTER TO SAVE GAME STATE   \n");
+    printf("  --------------------------------------------\n");
     printf("  > PLA1 - bornPawns: [%d] - deadPawns: [%d] <\n\n", gameState->p1BornPawns, gameState->p1DeadPawns);
-    printf("  > PLA2 - bornPawns: [%d] - deadPawns: [%d] <\n\n", gameState->p2BornPawns, gameState->p2DeadPawns);
+    printf("  > PLA2 - bornPawns: [%d] - deadPawns: [%d] <\n", gameState->p2BornPawns, gameState->p2DeadPawns);
+    printf("  --------------------------------------------\n\n");
 }
 
 void printFieldHighlights(int x, bool highlight[24]) {
@@ -195,6 +198,7 @@ void printBoard(struct GameState* gameState, bool highlight[24]) {
     printf("  +-----------------------------------------+\n");
     printf("   12 11 10  9  8  7       6  5  4  3  2  1  ");
     printFieldHighlights(2, highlight);
+    printf("\n");
 }
 
 void fieldDecryption(int *field) {
