@@ -1,7 +1,1 @@
-﻿  main.cpp
-C:\Users\Stan Swirydczuk\Desktop\newBackgammon\backgammon\backgammon\main.cpp(830,17): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-C:\Users\Stan Swirydczuk\Desktop\newBackgammon\backgammon\backgammon\main.cpp(875,15): warning C4244: 'argument': conversion from 'time_t' to 'unsigned int', possible loss of data
-C:\Users\Stan Swirydczuk\Desktop\newBackgammon\backgammon\backgammon\main.cpp(334,1): warning C4715: 'isFileEmpty': not all control paths return a value
-C:\Users\Stan Swirydczuk\Desktop\newBackgammon\backgammon\backgammon\main.cpp(363,1): warning C4715: 'nextPlayer': not all control paths return a value
-C:\Users\Stan Swirydczuk\Desktop\newBackgammon\backgammon\backgammon\main.cpp(848,1): warning C4715: 'getInput': not all control paths return a value
-  backgammon.vcxproj -> C:\Users\Stan Swirydczuk\Desktop\newBackgammon\backgammon\x64\Debug\backgammon.exe
+﻿  backgammon.vcxproj -> C:\Users\Stan Swirydczuk\Desktop\newBackgammon\backgammon\x64\Debug\backgammon.exe
